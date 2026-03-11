@@ -19,6 +19,15 @@ High-level runtime layout:
 1. `product-service`
 	- HTTP port: `8081`
 	- DB: `productdb` on `localhost:5436`
+	- Versions:
+	  - Hibernate ORM: `7.2.4.Final`
+	  - Spring Boot: `4.0.3`
+	  - Spring Data JPA: `4.0.3`
+	  - Spring Framework (core): `7.0.5`
+	  - PostgreSQL JDBC driver: `42.7.10`
+	  - Java toolchain: `21`
+	  - Gradle wrapper: `8.14`
+	  - Spring Dependency Management plugin: `1.1.7`
 
 2. `inventory-service`
 	- HTTP port: `8082`
