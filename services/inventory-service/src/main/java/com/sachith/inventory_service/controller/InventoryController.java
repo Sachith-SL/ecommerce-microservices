@@ -6,6 +6,7 @@ import com.sachith.inventory_service.dto.InventoryResponse;
 import com.sachith.inventory_service.dto.UpdateInventoryRequest;
 import com.sachith.inventory_service.service.InventoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +25,9 @@ import java.util.UUID;
 public class InventoryController {
 
     private final InventoryService inventoryService;
+
+    @Value("${server.port}")
+    private String port;
 
     @PostMapping()
     public ResponseEntity<ApiResponse<InventoryResponse>> create(@RequestBody CreateInventoryRequest request) {
@@ -49,4 +53,11 @@ public class InventoryController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(new ApiResponse<>(false, "Inventory not found", null)));
     }
+
+    @GetMapping("/check/{productId}")
+    public String checkInventory(@PathVariable UUID productId) {
+        return "Inventory response from port: " + port + " for product: " + productId;
+    }
+
+
 }

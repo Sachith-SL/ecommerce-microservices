@@ -5,6 +5,7 @@ import com.sachith.product_service.dto.CreateProductRequest;
 import com.sachith.product_service.dto.ProductResponse;
 import com.sachith.product_service.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +25,10 @@ import java.util.UUID;
 public class ProductController {
 
     private final ProductService productService;
+
+
+    @Value("${server.port}")
+    private String port;
 
     @PostMapping
     public ResponseEntity<ApiResponse<ProductResponse>> create(@RequestBody CreateProductRequest request) {
@@ -57,5 +62,12 @@ public class ProductController {
         productService.delete(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Product deleted", null));
     }
+
+    @GetMapping("/check/{productId}")
+    public String checkInventory(@PathVariable UUID productId) {
+        ProductResponse product = productService.getById(productId);
+        return "Inventory response from port: " + port + " for product: " + product.sku();
+    }
+
 
 }
