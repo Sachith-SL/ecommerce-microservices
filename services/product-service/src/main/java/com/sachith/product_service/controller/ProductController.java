@@ -64,9 +64,9 @@ public class ProductController {
     }
 
     @GetMapping("/check/{productId}")
-    public String checkInventory(@PathVariable UUID productId) {
+    public String checkProduct(@PathVariable UUID productId) {
         ProductResponse product = productService.getById(productId);
-        return "Inventory response from port: " + port + " for product: " + product.sku();
+        return "Product response from port: " + port + " for product: " + product.sku();
     }
 
 

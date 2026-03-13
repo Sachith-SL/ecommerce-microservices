@@ -1,11 +1,11 @@
 package com.sachith.order_service.client;
 
-import com.sachith.order_service.dto.InventoryRequest;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class InventoryClient {

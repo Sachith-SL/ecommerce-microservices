@@ -1,5 +1,6 @@
 package com.sachith.order_service.service.impl;
 
+import com.sachith.order_service.client.InventoryClient;
 import com.sachith.order_service.dto.CreateOrderRequest;
 import com.sachith.order_service.dto.OrderItemResponse;
 import com.sachith.order_service.dto.OrderResponse;
@@ -8,6 +9,10 @@ import com.sachith.order_service.model.OrderItem;
 import com.sachith.order_service.model.OrderStatus;
 import com.sachith.order_service.repository.OrderRepository;
 import com.sachith.order_service.service.OrderService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,15 +21,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
+@RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
 
-    public OrderServiceImpl(OrderRepository orderRepository) {
-        this.orderRepository = orderRepository;
-    }
+    private final InventoryClient inventoryClient;
 
     @Override
     public OrderResponse create(CreateOrderRequest request) {
@@ -87,6 +92,20 @@ public class OrderServiceImpl implements OrderService {
         return true;
     }
 
+    @CircuitBreaker(name = "inventoryService", fallbackMethod = "inventoryFallback")
+    @Retry(name = "inventoryService")
+    @TimeLimiter(name = "inventoryService")
+    @Override
+    public CompletableFuture<String> checkInventory(UUID productId) {
+        return CompletableFuture.completedFuture(inventoryClient.checkInventory(productId));
+    }
+
+    public CompletableFuture<String> inventoryFallback(UUID productId, Throwable ex) {
+        return CompletableFuture.completedFuture(
+                "Inventory service unavailable. Please try later."
+        );
+    }
+
     private OrderResponse toResponse(Order order) {
         return new OrderResponse(
                 order.getId(),
@@ -94,18 +113,18 @@ public class OrderServiceImpl implements OrderService {
                 order.getStatus(),
                 order.getTotalAmount(),
                 order.getCurrency(),
-            order.getItems() == null
-                ? Collections.emptyList()
-                : order.getItems().stream()
-                .map(item -> new OrderItemResponse(
-                    item.getId(),
-                    item.getProductId(),
-                    item.getProductName(),
-                    item.getUnitPrice(),
-                    item.getQuantity(),
-                    item.getSubtotal()
-                ))
-                .toList(),
+                order.getItems() == null
+                        ? Collections.emptyList()
+                        : order.getItems().stream()
+                        .map(item -> new OrderItemResponse(
+                                item.getId(),
+                                item.getProductId(),
+                                item.getProductName(),
+                                item.getUnitPrice(),
+                                item.getQuantity(),
+                                item.getSubtotal()
+                        ))
+                        .toList(),
                 order.getCreatedAt(),
                 order.getUpdatedAt()
         );
