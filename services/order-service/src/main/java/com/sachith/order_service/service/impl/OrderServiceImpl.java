@@ -2,12 +2,15 @@ package com.sachith.order_service.service.impl;
 
 import com.sachith.order_service.client.InventoryClient;
 import com.sachith.order_service.dto.CreateOrderRequest;
+import com.sachith.order_service.dto.OrderCreatedEvent;
+import com.sachith.order_service.dto.OrderItemEvent;
 import com.sachith.order_service.dto.OrderItemResponse;
 import com.sachith.order_service.dto.OrderResponse;
 import com.sachith.order_service.model.Order;
 import com.sachith.order_service.model.OrderItem;
 import com.sachith.order_service.model.OrderStatus;
 import com.sachith.order_service.repository.OrderRepository;
+import com.sachith.order_service.service.OrderProducer;
 import com.sachith.order_service.service.OrderService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -16,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -30,6 +34,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
 
     private final InventoryClient inventoryClient;
+
+    private final OrderProducer orderProducer;
 
     @Override
     public OrderResponse create(CreateOrderRequest request) {
@@ -66,7 +72,14 @@ public class OrderServiceImpl implements OrderService {
             order.setTotalAmount(calculatedTotal);
         }
 
-        return toResponse(orderRepository.save(order));
+        Order savedOrder = orderRepository.save(order);
+        List<OrderItem> items = savedOrder
+                .getItems() == null ? Collections.emptyList() : savedOrder.getItems();
+
+        OrderCreatedEvent event = mapToEvent(savedOrder, items);
+        orderProducer.sendOrderCreatedEvent(event);
+
+        return toResponse(savedOrder);
     }
 
     @Override
@@ -104,6 +117,29 @@ public class OrderServiceImpl implements OrderService {
         return CompletableFuture.completedFuture(
                 "Inventory service unavailable. Please try later."
         );
+    }
+
+    private OrderCreatedEvent mapToEvent(Order savedOrder, List<OrderItem> items) {
+        OrderCreatedEvent event = new OrderCreatedEvent();
+        event.setEventId(UUID.randomUUID().toString());
+        event.setEventType("ORDER_CREATED");
+        event.setOccurredAt(Instant.now());
+        event.setOrderId(savedOrder.getId());
+        event.setCustomerId(savedOrder.getCustomerId());
+        event.setCurrency(savedOrder.getCurrency());
+        event.setTotalAmount(savedOrder.getTotalAmount());
+        event.setItems(items.stream().map(this::mapToItemEvent).toList());
+        return event;
+    }
+
+    private OrderItemEvent mapToItemEvent(OrderItem item) {
+        OrderItemEvent eventItem = new OrderItemEvent();
+        eventItem.setProductId(item.getProductId());
+        eventItem.setProductName(item.getProductName());
+        eventItem.setUnitPrice(item.getUnitPrice());
+        eventItem.setQuantity(item.getQuantity());
+        eventItem.setSubtotal(item.getSubtotal());
+        return eventItem;
     }
 
     private OrderResponse toResponse(Order order) {
