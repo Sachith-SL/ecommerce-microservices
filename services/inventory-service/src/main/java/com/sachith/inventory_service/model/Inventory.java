@@ -19,7 +19,7 @@ public class Inventory {
     @UuidGenerator
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private UUID productId;
 
     private Integer availableQuantity;

@@ -1,11 +1,13 @@
 package com.sachith.product_service.service.impl;
 
 import com.sachith.product_service.dto.CreateProductRequest;
+import com.sachith.product_service.dto.ProductCreatedEvent;
 import com.sachith.product_service.dto.ProductResponse;
 import com.sachith.product_service.model.Product;
 import com.sachith.product_service.model.ProductType;
 import com.sachith.product_service.model.UnitOfMeasure;
 import com.sachith.product_service.repository.ProductRepository;
+import com.sachith.product_service.service.ProductProducer;
 import com.sachith.product_service.service.ProductService;
 import org.springframework.stereotype.Service;
 
@@ -16,10 +18,15 @@ import java.util.UUID;
 @Service
 public class ProductServiceImpl implements ProductService {
 
-    private final ProductRepository productRepository;
+    private static final int INITIAL_AVAILABLE_QUANTITY = 100;
 
-    public ProductServiceImpl(ProductRepository productRepository) {
+    private final ProductRepository productRepository;
+    private final ProductProducer productProducer;
+
+    public ProductServiceImpl(ProductRepository productRepository,
+                              ProductProducer productProducer) {
         this.productRepository = productRepository;
+        this.productProducer = productProducer;
     }
 
     @Override
@@ -38,6 +45,10 @@ public class ProductServiceImpl implements ProductService {
         product.setUpdatedAt(LocalDateTime.now());
 
         Product saved = productRepository.save(product);
+        productProducer.sendProductCreatedEvent(new ProductCreatedEvent(
+            saved.getId(),
+            INITIAL_AVAILABLE_QUANTITY
+        ));
         return toProductResponse(saved);
     }
 

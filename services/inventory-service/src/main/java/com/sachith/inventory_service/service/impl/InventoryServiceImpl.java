@@ -7,6 +7,7 @@ import com.sachith.inventory_service.model.Inventory;
 import com.sachith.inventory_service.repository.InventoryRepository;
 import com.sachith.inventory_service.service.InventoryService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -30,6 +31,14 @@ public class InventoryServiceImpl implements InventoryService {
         inventory.setUpdatedAt(LocalDateTime.now());
 
         return toResponse(inventoryRepository.save(inventory));
+    }
+
+    @Override
+    @Transactional
+    public InventoryResponse createIfAbsent(CreateInventoryRequest request) {
+        return inventoryRepository.findByProductId(request.productId())
+                .map(this::toResponse)
+                .orElseGet(() -> create(request));
     }
 
     @Override

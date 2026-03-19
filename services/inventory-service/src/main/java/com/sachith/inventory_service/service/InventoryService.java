@@ -11,6 +11,8 @@ public interface InventoryService {
 
     InventoryResponse create(CreateInventoryRequest request);
 
+    InventoryResponse createIfAbsent(CreateInventoryRequest request);
+
     Optional<InventoryResponse> getById(UUID id);
 
     Optional<InventoryResponse> updateById(UUID id, UpdateInventoryRequest request);
