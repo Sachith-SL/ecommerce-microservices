@@ -11,7 +11,13 @@ public interface ProductService {
 
     List<ProductResponse> getAll();
 
+    List<ProductResponse> getActiveProducts();
+
     ProductResponse getById(UUID id);
+
+    void deactivate(UUID id);
+
+    void activate(UUID id);
 
     void delete(UUID id);
 }

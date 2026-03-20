@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -51,10 +52,34 @@ public class ProductController {
                         products));
     }
 
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<List<ProductResponse>>> getActiveProducts() {
+        List<ProductResponse> products = productService.getActiveProducts();
+        return ResponseEntity
+                .ok(new ApiResponse<>(
+                        true,
+                        "Products fetched",
+                        products));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductResponse>> getById(@PathVariable UUID id) {
         ProductResponse product = productService.getById(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Product fetched", product));
+    }
+
+    @PatchMapping("/{id}/{action}")
+    public ResponseEntity<ApiResponse<Object>> updateActiveStatus(@PathVariable UUID id, @PathVariable String action) {
+        if ("deactivate".equalsIgnoreCase(action)) {
+            productService.deactivate(id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Product deactivated", null));
+        } else if ("activate".equalsIgnoreCase(action)) {
+            productService.activate(id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Product activated", null));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, "Invalid action", null));
+        }
     }
 
     @DeleteMapping("/{id}")
@@ -63,11 +88,6 @@ public class ProductController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Product deleted", null));
     }
 
-    @GetMapping("/check/{productId}")
-    public String checkProduct(@PathVariable UUID productId) {
-        ProductResponse product = productService.getById(productId);
-        return "Product response from port: " + port + " for product: " + product.sku();
-    }
-
+    
 
 }

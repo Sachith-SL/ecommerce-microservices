@@ -1,5 +1,6 @@
 package com.sachith.order_service.service.impl;
 
+import com.sachith.order_service.client.ProductClient;
 import com.sachith.order_service.client.InventoryClient;
 import com.sachith.order_service.dto.ApiResponse;
 import com.sachith.order_service.dto.CreateOrderRequest;
@@ -8,6 +9,7 @@ import com.sachith.order_service.dto.OrderCreatedEvent;
 import com.sachith.order_service.dto.OrderItemEvent;
 import com.sachith.order_service.dto.OrderItemResponse;
 import com.sachith.order_service.dto.OrderResponse;
+import com.sachith.order_service.dto.ProductResponse;
 import com.sachith.order_service.model.Order;
 import com.sachith.order_service.model.OrderItem;
 import com.sachith.order_service.model.OrderStatus;
@@ -35,6 +37,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
 
+    private final ProductClient productClient;
+
     private final InventoryClient inventoryClient;
 
     private final OrderProducer orderProducer;
@@ -50,6 +54,8 @@ public class OrderServiceImpl implements OrderService {
 
         if (request.items() != null) {
             for (var itemRequest : request.items()) {
+                validateProductIsActive(itemRequest.productId());
+
                 OrderItem item = new OrderItem();
                 item.setOrder(order);
                 item.setProductId(itemRequest.productId());
@@ -141,6 +147,21 @@ public class OrderServiceImpl implements OrderService {
     public CompletableFuture<ApiResponse<InventoryResponse>> inventoryFallback(UUID productId, Throwable ex) {
         return CompletableFuture.completedFuture(
                 new ApiResponse<>(false, "Inventory service unavailable. Please try later.", null));
+    }
+
+    private void validateProductIsActive(UUID productId) {
+        if (productId == null) {
+            throw new RuntimeException("Product id is required");
+        }
+
+        ApiResponse<ProductResponse> productResponse = productClient.checkProduct(productId);
+        if (productResponse == null || !productResponse.isSuccess() || productResponse.getData() == null) {
+            throw new RuntimeException("Product not found");
+        }
+
+        if (!Boolean.TRUE.equals(productResponse.getData().active())) {
+            throw new RuntimeException("Product is inactive");
+        }
     }
 
     private OrderCreatedEvent mapToEvent(Order savedOrder, List<OrderItem> items) {

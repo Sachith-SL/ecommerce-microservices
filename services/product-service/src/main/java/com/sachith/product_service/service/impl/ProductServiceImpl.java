@@ -61,10 +61,36 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public List<ProductResponse> getActiveProducts() {
+        return productRepository.findByActiveTrue()
+                .stream()
+                .map(this::toProductResponse)
+                .toList();
+    }
+
+    @Override
     public ProductResponse getById(UUID id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         return toProductResponse(product);
+    }
+
+    @Override
+    public void deactivate(UUID id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        product.setActive(false);
+        product.setUpdatedAt(LocalDateTime.now());
+        productRepository.save(product);
+    }
+
+    @Override
+    public void activate(UUID id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        product.setActive(true);
+        product.setUpdatedAt(LocalDateTime.now());
+        productRepository.save(product);
     }
 
     @Override
