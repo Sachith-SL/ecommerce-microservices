@@ -19,4 +19,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 	@Override
 	@EntityGraph(attributePaths = "items")
 	Optional<Order> findById(UUID id);
+
+	@EntityGraph(attributePaths = "items")
+	List<Order> findByCustomerId(UUID customerId);
 }

@@ -25,9 +25,15 @@ public class InventoryConsumer {
     public void consume(OrderCreatedEvent event) {
         log.info("Received order-created event: orderId={}", event.getOrderId());
         event.getItems().forEach(item ->
-                log.info("Item productId={}, qty={}",
-                        item.getProductId(),
-                        item.getQuantity())
+                inventoryService.reduceAvailableQuantityByProductId(item.getProductId(), item.getQuantity())
+                        .ifPresentOrElse(
+                                inventory -> log.info("Reduced inventory productId={}, qty={}",
+                                        item.getProductId(),
+                                        item.getQuantity()),
+                                () -> log.warn("Inventory not found for productId={} while reducing qty={}",
+                                        item.getProductId(),
+                                        item.getQuantity())
+                        )
         );
 
     }

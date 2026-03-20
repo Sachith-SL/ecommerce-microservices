@@ -1,6 +1,7 @@
 package com.sachith.order_service.controller;
 
-import com.sachith.order_service.client.InventoryClient;
+import com.sachith.order_service.dto.ApiResponse;
+import com.sachith.order_service.dto.InventoryResponse;
 import com.sachith.order_service.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +20,7 @@ public class OrderInventoryTestController {
     private final OrderService orderService;
 
     @GetMapping("/{productId}")
-    public CompletableFuture<String> testInventoryCall(@PathVariable UUID productId) {
+    public CompletableFuture<ApiResponse<InventoryResponse>> testInventoryCall(@PathVariable UUID productId) {
         return orderService.checkInventory(productId);
 
     }

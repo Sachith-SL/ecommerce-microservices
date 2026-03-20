@@ -1,7 +1,8 @@
 package com.sachith.order_service.controller;
 
-import com.sachith.order_service.client.InventoryClient;
 import com.sachith.order_service.client.ProductClient;
+import com.sachith.order_service.dto.ApiResponse;
+import com.sachith.order_service.dto.ProductResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,7 +17,7 @@ public class OrderProductTestController {
     private final ProductClient productClient;
 
     @GetMapping("/{productId}")
-    public String testInventoryCall(@PathVariable UUID productId) {
+    public ApiResponse<ProductResponse> testInventoryCall(@PathVariable UUID productId) {
         return productClient.checkProduct(productId);
     }
 }

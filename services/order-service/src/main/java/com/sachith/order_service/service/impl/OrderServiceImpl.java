@@ -1,7 +1,9 @@
 package com.sachith.order_service.service.impl;
 
 import com.sachith.order_service.client.InventoryClient;
+import com.sachith.order_service.dto.ApiResponse;
 import com.sachith.order_service.dto.CreateOrderRequest;
+import com.sachith.order_service.dto.InventoryResponse;
 import com.sachith.order_service.dto.OrderCreatedEvent;
 import com.sachith.order_service.dto.OrderItemEvent;
 import com.sachith.order_service.dto.OrderItemResponse;
@@ -91,8 +93,31 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public List<OrderResponse> getByCustomerId(UUID customerId) {
+        return orderRepository.findByCustomerId(customerId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
     public Optional<OrderResponse> getById(UUID id) {
         return orderRepository.findById(id)
+                .map(this::toResponse);
+    }
+
+    @Override
+    public Optional<OrderResponse> updateStatus(UUID id, OrderStatus status) {
+        if (status == null) {
+            throw new RuntimeException("Order status is required");
+        }
+
+        return orderRepository.findById(id)
+                .map(order -> {
+                    order.setStatus(status);
+                    order.setUpdatedAt(LocalDateTime.now());
+                    return orderRepository.save(order);
+                })
                 .map(this::toResponse);
     }
 
@@ -109,14 +134,13 @@ public class OrderServiceImpl implements OrderService {
     @Retry(name = "inventoryService")
     @TimeLimiter(name = "inventoryService")
     @Override
-    public CompletableFuture<String> checkInventory(UUID productId) {
+    public CompletableFuture<ApiResponse<InventoryResponse>> checkInventory(UUID productId) {
         return CompletableFuture.completedFuture(inventoryClient.checkInventory(productId));
     }
 
-    public CompletableFuture<String> inventoryFallback(UUID productId, Throwable ex) {
+    public CompletableFuture<ApiResponse<InventoryResponse>> inventoryFallback(UUID productId, Throwable ex) {
         return CompletableFuture.completedFuture(
-                "Inventory service unavailable. Please try later."
-        );
+                new ApiResponse<>(false, "Inventory service unavailable. Please try later.", null));
     }
 
     private OrderCreatedEvent mapToEvent(Order savedOrder, List<OrderItem> items) {
@@ -152,17 +176,15 @@ public class OrderServiceImpl implements OrderService {
                 order.getItems() == null
                         ? Collections.emptyList()
                         : order.getItems().stream()
-                        .map(item -> new OrderItemResponse(
-                                item.getId(),
-                                item.getProductId(),
-                                item.getProductName(),
-                                item.getUnitPrice(),
-                                item.getQuantity(),
-                                item.getSubtotal()
-                        ))
-                        .toList(),
+                                .map(item -> new OrderItemResponse(
+                                        item.getId(),
+                                        item.getProductId(),
+                                        item.getProductName(),
+                                        item.getUnitPrice(),
+                                        item.getQuantity(),
+                                        item.getSubtotal()))
+                                .toList(),
                 order.getCreatedAt(),
-                order.getUpdatedAt()
-        );
+                order.getUpdatedAt());
     }
 }
